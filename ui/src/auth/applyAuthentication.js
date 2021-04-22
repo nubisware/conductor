@@ -14,7 +14,7 @@ const defaultOptions = {
     maxAge: 20 * 60 * 1000, // 20 minutes
     signed: true
   },
-  audit: false,
+  audit: true,
   indexPath: "/",
   loginPath: "/login",
   logoutPath: "/logout"
@@ -118,9 +118,10 @@ module.exports = (app, opt) => {
     done(null, user);
   }); 
 
-  app.get('/callback',
-       passport.authenticate(options.strategy, { failureRedirect: options.loginPath, successRedirect: options.indexPath }),
-          function(req, res) {
+  app.get('/login/callback',
+       passport.authenticate(options.strategy),
+          function(req, res, next) {
+            console.log("Authentication has worked now proceed with roles ...");
             if (options && options.strategySettings && options.strategySettings.roles) {
               console.log(" options roles "+JSON.stringify(options.strategySettings.roles));
               console.log(" options user roles "+JSON.stringify(req.user.roles));
@@ -128,17 +129,18 @@ module.exports = (app, opt) => {
 		if (req.user.roles && req.user.roles.indexOf(options.strategySettings.roles[i]) >= 0) {
 		  const cookieValue = authentication.getCookieValueFromUser(req, req.user, options);
 		  res.cookie(options.cookieName, JSON.stringify(cookieValue), options.cookie);
-		  console.log("Everything ok in callback redirecting to ", options.indexPath)
-		  //res.redirect(options.indexPath);
-		  return;
+		  console.log("Everything ok in callback ...going on")
+		  //res.redirect(options.loginPath);
+		  return res.send("<html><body><h2>Welcome to conductor. <a href='/'>Enter</a>.</h2></body></html>");
 		}
 	     }
 	     console.log(" no roles ");
 	     res.clearCookie(options.cookieName, options.cookie);
-	     res.redirect(options.logoutPath);
+	     res.redirect(options.loginPath);
+             next();
            }
-         }
-    ); 
+         } 
+  );
 
   app.get(options.logoutPath, (req, res) => {
     console.log("Logging out");
@@ -146,13 +148,11 @@ module.exports = (app, opt) => {
       options.audit(`User ${req.user.name} logged out`);
     }
     res.clearCookie(options.cookieName, options.cookie);
-    console.log("Redirecting to keycloak logout");
-    //res.redirect("http://accounts.dev.d4science.org/auth/realms/d4science/protocol/openid-connect/logout?redirect_uri=http://10.1.151.73:5000/callback");
-    res.redirect(options.indexPath)
+    res.send("<html><body>Bye!</body></html>")
   });
 
   app.get('/api/me', (req, res) => {
-    if(req.user){
+    if(true && req.user){
       res.send({
         user: req.user,
         logoutPath: options.logoutPath

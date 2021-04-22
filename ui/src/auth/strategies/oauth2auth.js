@@ -20,12 +20,14 @@ const OAuth2Authentication = {
             },
             function(accessToken, refreshToken, profile, cb) {
                 try {
+		    console.log("In callback handler");
 		    let buff = new Buffer(accessToken.split(".")[1], 'base64');
 		    let at = JSON.parse(buff.toString('ascii'));
-		    console.log("Access token ", at);
+		    //console.log("Access token ", at);
                     //console.log("Refresh token ", refreshToken);
                     //console.log("id_token "+JSON.stringify(profile));
                     if(at && at.resource_access && at.resource_access['conductor-ui'].roles.length > 0){
+		      console.log("Preparing user ",at.preferred_username);
 		      return cb(null, {
                         name: at.preferred_username,
                         displayName: at.name,
@@ -34,8 +36,7 @@ const OAuth2Authentication = {
                         roles: at.resource_access['conductor-ui'].roles
                       })
 		   }else{
-                     console.log("Should not log in")
-		     cb(null, false, { message : "Unable to log in. Invalid token or unsufficient roles"})
+		     cb(null, false, { message : "Unable to log in. Invalid token or unsufficient roles"});
 		   }
                 } catch (e) {
                     console.log(e)
@@ -54,12 +55,12 @@ const OAuth2Authentication = {
 
 	getDefaultCookieSecret(options) {
            console.log("Accessing default cookie secret",options.cookieSecret)
-	   return null;//options.cookieSecret;
+	   return options.cookieSecret;
 	},
 
 	getCookieValueFromUser(req, user, options) {
-          console.log("") 
-	  return user;
+	   console.log("Transforming user into cookie", user)
+	   return user;
 	}
 }
 
