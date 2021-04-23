@@ -14,7 +14,7 @@ const defaultOptions = {
     maxAge: 20 * 60 * 1000, // 20 minutes
     signed: true
   },
-  audit: true,
+  audit: false,
   indexPath: "/",
   loginPath: "/login",
   logoutPath: "/logout"
@@ -54,7 +54,6 @@ module.exports = (app, opt) => {
   }
 
   // validate authentication strategy
-  console.log(strategies)
   if (!strategies[options.strategy]) {
     throw new Error(`Authentication strategy ${options.strategy} is not supported!`);
   }
@@ -67,48 +66,33 @@ module.exports = (app, opt) => {
   app.use(accessControlMiddleware(options));
 
   // create authentication endpoints
-  /*app.post(options.loginPath,
-    bodyParser.urlencoded({ extended: false }),
-    async (req, res, next) => {
-      passport.authenticate(options.strategy, { session : false }, 
-      (err, user, info) => {
-        console.log("Inside login path POST", err, res, next)
-	if (err) {
-          return next(err);
-        }
-        if (!user) {
-          res.redirect(options.loginPath + '?error=' + encodeURIComponent(info.message));
-          return next();
-        }
 
-        if (options.audit) {
-          options.audit(`User ${req.body.username} logged in`);
-        }
-        const cookieValue = authentication.getCookieValueFromUser(req, user, options);
-        res.cookie(options.cookieName, JSON.stringify(cookieValue), options.cookie);
-        res.redirect(options.indexPath);
-        next();
-      })(req, res, next);
-    }
-  );*/
-
-  app.get(options.loginPath,
-      passport.authenticate(options.strategy)
-  );
-
-  /*app.get(options.indexPath,
-    (req, res, next) => {
-      console.log("Accessing indexPath with ", req.isAuthenticated(), req.user, req.headers, req.cookies);
-      if(!req.user){
-        res.send(
-           '<html><body><a href="/login">Click to login</a></body></html>'
-	)
-      }else{
-        next();
+  if (options.strategy === "oauth2") {
+    app.get(options.loginPath, passport.authenticate(options.strategy));
+  } else {
+    app.post(options.loginPath,
+      bodyParser.urlencoded({ extended: false }),
+      async (req, res, next) => {
+        passport.authenticate(options.strategy, { session : false }, (err, user, info) => {
+            console.log("Inside login path POST", err, res, next)
+            if (err) {
+              return next(err);
+            }
+            if (!user) {
+              res.redirect(options.loginPath + '?error=' + encodeURIComponent(info.message));
+              return next();
+            }
+            if (options.audit) {
+                options.audit(`User ${req.body.username} logged in`);
+            }
+            const cookieValue = authentication.getCookieValueFromUser(req, user, options);
+            res.cookie(options.cookieName, JSON.stringify(cookieValue), options.cookie);
+            res.redirect(options.indexPath);
+            next();
+        })(req, res, next);
       }
-    }
-//	  passport.authenticate(options.strategy)
-  );*/
+    );
+  }
 
   passport.serializeUser(function(user, done) {
     done(null, user);
@@ -118,38 +102,48 @@ module.exports = (app, opt) => {
     done(null, user);
   }); 
 
-  app.get('/login/callback',
-       passport.authenticate(options.strategy),
-          function(req, res, next) {
-            console.log("Authentication has worked now proceed with roles ...");
-            if (options && options.strategySettings && options.strategySettings.roles) {
-              console.log(" options roles "+JSON.stringify(options.strategySettings.roles));
-              console.log(" options user roles "+JSON.stringify(req.user.roles));
-              for(var i=0; i < options.strategySettings.roles.length; i++) {
-		if (req.user.roles && req.user.roles.indexOf(options.strategySettings.roles[i]) >= 0) {
-		  const cookieValue = authentication.getCookieValueFromUser(req, req.user, options);
-		  res.cookie(options.cookieName, JSON.stringify(cookieValue), options.cookie);
-		  console.log("Everything ok in callback ...going on")
-		  //res.redirect(options.loginPath);
-		  return res.send("<html><body><h2>Welcome to conductor. <a href='/'>Enter</a>.</h2></body></html>");
-		}
-	     }
-	     console.log(" no roles ");
-	     res.clearCookie(options.cookieName, options.cookie);
-	     res.redirect(options.loginPath);
-             next();
-           }
-         } 
+  app.get(options.loginPath + "/callback",
+    passport.authenticate(options.strategy),
+    function (req, res, next) {
+      //console.log("Authentication has worked now proceed with roles...");
+      if (options && options.strategySettings && options.strategySettings.roles) {
+        //console.log(" options roles " + JSON.stringify(options.strategySettings.roles));
+        //console.log(" options user roles " + JSON.stringify(req.user.roles));
+        for (var i = 0; i < options.strategySettings.roles.length; i++) {
+          if (req.user.roles && req.user.roles.indexOf(options.strategySettings.roles[i]) >= 0) {
+            const cookieValue = authentication.getCookieValueFromUser(req, req.user, options);
+            res.cookie(options.cookieName, JSON.stringify(cookieValue), options.cookie);
+            //console.log("Everything ok in callback... going on")
+            return res.send('<html><head><meta http-equiv="refresh" content="0;URL=' + options.indexPath + '" /></head><body></body></html>');
+          }
+        }
+        //console.log("No suitable roles returned");
+        res.clearCookie(options.cookieName, options.cookie);
+        res.redirect(options.loginPath);
+        next();
+      }
+    }
   );
 
   app.get(options.logoutPath, (req, res) => {
-    console.log("Logging out");
     if (req.user && options.audit) {
       options.audit(`User ${req.user.name} logged out`);
     }
     res.clearCookie(options.cookieName, options.cookie);
-    res.send("<html><body>Bye!</body></html>")
+    if (options.strategy === "oauth2") {
+      res.sendFile("/public/logged-out.html", { root: '.' });
+    }
   });
+
+  if (options.strategy === "oauth2") {
+    app.get(options.logoutPath + "/sso", (req, res) => {
+      res.redirect(options.strategySettings.logoutURL + "?redirect_uri=" + options.strategySettings.logoutCallbackURL);
+    });
+
+    app.get(options.logoutPath + "/callback", (req, res) => {
+      res.sendFile("/public/logged-out-sso.html", { root: '.' }); 
+    });
+  }
 
   app.get('/api/me', (req, res) => {
     if(req.user){

@@ -27,33 +27,31 @@ const accessControlMiddleware = (options) => {
   }
 
   return (req, res, next) => {
-    console.log("Entered middleware");
     const cookieValue = req.signedCookies[options.cookieName];
-    console.log("Cookie value is set?", !!cookieValue);
 
     if (cookieValue) {
       req.user = JSON.parse(cookieValue);
-      console.log("User set",req.user.name)
       // extend if needed
       if (options.cookieRoll) {
         res.cookie(options.cookieName, cookieValue, options.cookie);
       }
     }
 
-    // skip for login/logout path
-    console.log("Is it a login/logut path?",req.path) 
+    // skip for login/logout path/CSS and images
     if (req.path === options.loginPath ||
       req.path.startsWith(options.loginPath + "/") ||
       req.path === options.logoutPath ||
-      req.path.startsWith(options.logoutPath + "/")
+      req.path.startsWith(options.logoutPath + "/") ||
+      req.path.endsWith(".css") ||
+      req.path.endsWith(".jpg") ||
+      req.path.endsWith(".png") ||
+      req.path.endsWith(".gif")
     ) return next();
 
-    console.log("It's not a login/logout thus proceeding", req.path);
     const requiredRoles = getRequiredRoles(req);
     if (!requiredRoles || requiredRoles.length === 0) return next();
 
     // validate
-    console.log("is request authenticated?",req.isAuthenticated())
     if (!req.isAuthenticated()) {
       if (req.xhr || req.headers.accept.indexOf('json') > -1) { // XHR
         return res.status(401)
@@ -62,7 +60,6 @@ const accessControlMiddleware = (options) => {
           .end();
       }
       // browser navigation
-      console.log("req is not Authenticated and since in browser we redirect to",options.loginPath); 
       return res.redirect(options.loginPath);
     }
     // check roles
