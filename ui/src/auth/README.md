@@ -37,6 +37,7 @@ Setup one of the supported [Passport.js](http://www.passportjs.org/) strategies:
 |---------------|--------------------------------------------------|----------------------
 | `local`       | Local users file using PBKDF2 to store passwords | [`passport-local`](https://github.com/jaredhanson/passport-local)
 | `ldapauth`    | LDAP / AD authentication                         | [`passport-ldapauth`](http://www.passportjs.org/packages/passport-ldapauth/)
+| `oauth2`      | OAuth2/OIDC authentication                       | [`passport-oauth2`](http://www.passportjs.org/packages/passport-oauth2/)
 
 ### Local
 
@@ -122,7 +123,45 @@ See example of use:
   ]
 }
 ```
- 
+
+### OAUTH2
+
+#### Strategy Settings
+
+* `authorizationURL` - The OAuth2/OIDC authorization URL endpoint
+* `tokenURL` - The OAuth2/OIDC token URL endpoint
+* `clientID` - The client id associated to the Conductor Workflow UI on the server
+* `clientSecret` - The client secret provided by the server (usually) during registration
+* `callbackURL` - The callback URL registered into the server and where user will be redirected after login
+* `logoutURL` - The OAuth2/OIDC logout URL endpoint to perform the global SSOut
+* `logoutCallbackURL` - The callback URL registered into the server and where user will be redirected after SSOut logout
+
+#### Example
+
+An example configuration:
+ ```json
+{
+  "strategy": "oauth2",
+  "strategySettings": {
+    "authorizationURL": "https://[your-oauth2-server]/auth/realms/test/protocol/openid-connect/auth",
+    "tokenURL": "https://[your-oauth2-server]/auth/realms/test/protocol/openid-connect/token",
+    "clientID": "workflow-ui",
+    "clientSecret": "[shhh it's a secret]",
+    "callbackURL": "http://localhost:5000/login/callback",
+    "logoutURL": "https://[your-oauth2-server]/auth/realms/d4science/protocol/openid-connect/logout",
+    "logoutCallbackURL": "http://localhost:5000/logout/callback",
+    "roles": [ "admin", "viewer" ]
+  },
+  "acl": [
+    "POST /(.*)                         admin",
+    "PUT /(.*)                          admin",
+    "DELETE /(.*)                       admin",
+    "GET /api/(.*)                      *",
+    "GET /(.*)                          viewer,admin"
+  ]
+}
+```
+
 ## Other plugins
 
 In order to add a passport.js strategy, create an implementation of the IAuthentication interface.
