@@ -152,7 +152,7 @@ module.exports = (app, opt) => {
   });
 
   app.get('/api/me', (req, res) => {
-    if(true && req.user){
+    if(req.user){
       res.send({
         user: req.user,
         logoutPath: options.logoutPath

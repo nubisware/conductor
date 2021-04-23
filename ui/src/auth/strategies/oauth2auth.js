@@ -31,8 +31,8 @@ const OAuth2Authentication = {
 		      return cb(null, {
                         name: at.preferred_username,
                         displayName: at.name,
-                        email: at.email,
-			refresh_token: refreshToken,
+                        //email: at.email,
+			//refresh_token: refreshToken,
                         roles: at.resource_access['conductor-ui'].roles
                       })
 		   }else{
