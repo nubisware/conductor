@@ -148,7 +148,7 @@ An example configuration:
     "clientID": "workflow-ui",
     "clientSecret": "[shhh it's a secret]",
     "callbackURL": "http://localhost:5000/login/callback",
-    "logoutURL": "https://[your-oauth2-server]/auth/realms/d4science/protocol/openid-connect/logout",
+    "logoutURL": "https://[your-oauth2-server]/auth/realms/test/protocol/openid-connect/logout",
     "logoutCallbackURL": "http://localhost:5000/logout/callback",
     "roles": [ "admin", "viewer" ]
   },
