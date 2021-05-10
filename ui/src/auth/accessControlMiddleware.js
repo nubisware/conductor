@@ -37,11 +37,15 @@ const accessControlMiddleware = (options) => {
       }
     }
 
-    // skip for login/logout path
+    // skip for login/logout path/CSS and images
     if (req.path === options.loginPath ||
       req.path.startsWith(options.loginPath + "/") ||
       req.path === options.logoutPath ||
-      req.path.startsWith(options.logoutPath + "/")
+      req.path.startsWith(options.logoutPath + "/") ||
+      req.path.endsWith(".css") ||
+      req.path.endsWith(".jpg") ||
+      req.path.endsWith(".png") ||
+      req.path.endsWith(".gif")
     ) return next();
 
     const requiredRoles = getRequiredRoles(req);
@@ -59,6 +63,7 @@ const accessControlMiddleware = (options) => {
       return res.redirect(options.loginPath);
     }
     // check roles
+    console.log("Check roles")
     if (requiredRoles.some(role => !req.user.roles.includes(role))) {
       options.audit && options.audit(`User ${req.user.name} tried to access ${req.method} ${req.originalUrl} without expected roles ${requiredRoles} (User has the roles ${req.user.roles})`);
       if (req.xhr || req.headers.accept.indexOf('json') > -1) { // XHR

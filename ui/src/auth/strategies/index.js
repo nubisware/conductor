@@ -1,5 +1,6 @@
 const local = require('./local');
 const ldapauth = require('./ldapauth');
+const oauth2 = require('./oauth2auth');
 
 /**
  * @typedef {Object} IAuthentication
@@ -11,5 +12,6 @@ const ldapauth = require('./ldapauth');
 /** @type {Object<string, IAuthentication>} */
 module.exports = {
   local,
-  ldapauth
+  ldapauth,
+  oauth2
 };
